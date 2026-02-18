@@ -12,8 +12,8 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-// Roles enumeration
-type Role = 'cliente' | 'albañil' | 'electricista' | 'plomero' | 'admin';
+// Roles enumeration (documentación)
+// Role: 'cliente' | 'albañil' | 'electricista' | 'plomero' | 'admin'
 
 // User registration with role
 app.post('/api/v1/auth/register', async (req, res) => {
