@@ -1,0 +1,4 @@
+-- Migration helper (manual): if you already have a users table with plaintext password,
+-- migrate it to password_hash.
+-- NOTE: This is a placeholder; in a real project we would use a migrations tool.
+-- For now, easiest is to recreate the db volume.
