@@ -29,6 +29,16 @@ export default function App() {
   const [me, setMe] = useState(null)
   const [result, setResult] = useState(null)
 
+  const COLORS = {
+    bg: '#F3F4F6',
+    card: '#FFFFFF',
+    text: '#111827',
+    muted: '#6B7280',
+    border: '#E5E7EB',
+    orange: '#F1732E',
+    dark: '#1F2937'
+  }
+
   const headers = useMemo(() => {
     const h = { 'Content-Type': 'application/json' }
     if (token) h.Authorization = `Bearer ${token}`
@@ -97,77 +107,163 @@ export default function App() {
     })
   }
 
+  const baseBtn = {
+    border: `1px solid ${COLORS.border}`,
+    background: COLORS.card,
+    color: COLORS.text,
+    padding: '10px 12px',
+    borderRadius: 10,
+    cursor: 'pointer'
+  }
+
+  const primaryBtn = {
+    ...baseBtn,
+    background: COLORS.orange,
+    border: `1px solid ${COLORS.orange}`,
+    color: 'white',
+    fontWeight: 700
+  }
+
+  const inputStyle = {
+    width: '100%',
+    marginTop: 6,
+    padding: '10px 12px',
+    borderRadius: 10,
+    border: `1px solid ${COLORS.border}`
+  }
+
   return (
-    <div style={{ fontFamily: 'system-ui', padding: 16, maxWidth: 640 }}>
-      <h1>FerreBot</h1>
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        <button onClick={() => setMode('register')} disabled={mode === 'register'}>
-          Registro
-        </button>
-        <button onClick={() => setMode('login')} disabled={mode === 'login'}>
-          Login
-        </button>
-        <div style={{ flex: 1 }} />
-        <button onClick={fetchMe} disabled={!token}>
-          /me
-        </button>
-        <button onClick={logout} disabled={!token}>
-          Salir
-        </button>
-      </div>
-
-      <label>
-        Usuario
-        <input value={username} onChange={(e) => setUsername(e.target.value)} style={{ width: '100%', marginTop: 4 }} />
-      </label>
-      <div style={{ height: 8 }} />
-      <label>
-        Clave
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', marginTop: 4 }} />
-      </label>
-
-      {mode === 'register' && (
-        <>
-          <div style={{ height: 12 }} />
-          <div style={{ fontSize: 14, marginBottom: 6 }}>Roles (podés elegir varios)</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            {ROLES.map((r) => (
-              <label key={r} style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                <input type="checkbox" checked={selectedRoles.includes(r)} onChange={() => toggleRole(r)} />
-                {r}
-              </label>
-            ))}
+    <div
+      style={{
+        minHeight: '100vh',
+        background: COLORS.bg,
+        color: COLORS.text,
+        fontFamily: 'system-ui',
+        padding: 16
+      }}
+    >
+      <div style={{ maxWidth: 720, margin: '0 auto' }}>
+        <div
+          style={{
+            background: COLORS.dark,
+            borderRadius: 16,
+            padding: 16,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14
+          }}
+        >
+          <img src="/logo.png" alt="Ferretería Battiston" style={{ height: 46, width: 'auto' }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ color: 'white', fontWeight: 800, letterSpacing: 0.3 }}>Ferretería Battiston</div>
+            <div style={{ color: '#D1D5DB', fontSize: 13 }}>Fidelización + Oficios</div>
           </div>
-        </>
-      )}
-
-      <div style={{ height: 12 }} />
-      {mode === 'register' ? (
-        <button onClick={register}>Registrar</button>
-      ) : (
-        <button onClick={login}>Entrar</button>
-      )}
-
-      {token && (
-        <div style={{ marginTop: 16, fontSize: 12, color: '#333' }}>
-          <div>
-            <b>Token guardado</b> (localStorage)
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <button style={baseBtn} onClick={() => setMode('register')} disabled={mode === 'register'}>
+              Registro
+            </button>
+            <button style={baseBtn} onClick={() => setMode('login')} disabled={mode === 'login'}>
+              Login
+            </button>
+            <button style={baseBtn} onClick={fetchMe} disabled={!token}>
+              /me
+            </button>
+            <button style={baseBtn} onClick={logout} disabled={!token}>
+              Salir
+            </button>
           </div>
         </div>
-      )}
 
-      {me && (
-        <pre style={{ marginTop: 12, background: '#111', color: '#0f0', padding: 12, overflow: 'auto' }}>
+        <div style={{ height: 14 }} />
+
+        <div
+          style={{
+            background: COLORS.card,
+            borderRadius: 16,
+            border: `1px solid ${COLORS.border}`,
+            padding: 16
+          }}
+        >
+          <div style={{ fontWeight: 800, marginBottom: 6, fontSize: 16 }}>
+            {mode === 'register' ? 'Crear cuenta' : 'Ingresar'}
+          </div>
+          <div style={{ color: COLORS.muted, fontSize: 13, marginBottom: 14 }}>
+            {mode === 'register'
+              ? 'Elegí roles, registrate y empezá a usar la app.'
+              : 'Ingresá con tu usuario y contraseña.'}
+          </div>
+
+          <label style={{ display: 'block', fontSize: 13, color: COLORS.muted }}>
+            Usuario
+            <input value={username} onChange={(e) => setUsername(e.target.value)} style={inputStyle} />
+          </label>
+
+          <div style={{ height: 10 }} />
+
+          <label style={{ display: 'block', fontSize: 13, color: COLORS.muted }}>
+            Clave
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} />
+          </label>
+
+          {mode === 'register' && (
+            <>
+              <div style={{ height: 14 }} />
+              <div style={{ fontSize: 13, marginBottom: 8, color: COLORS.muted }}>Roles (podés elegir varios)</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                {ROLES.map((r) => (
+                  <label
+                    key={r}
+                    style={{
+                      display: 'inline-flex',
+                      gap: 8,
+                      alignItems: 'center',
+                      padding: '8px 10px',
+                      borderRadius: 999,
+                      border: `1px solid ${COLORS.border}`
+                    }}
+                  >
+                    <input type="checkbox" checked={selectedRoles.includes(r)} onChange={() => toggleRole(r)} />
+                    {r}
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
+
+          <div style={{ height: 16 }} />
+          {mode === 'register' ? (
+            <button style={primaryBtn} onClick={register}>
+              Registrar
+            </button>
+          ) : (
+            <button style={primaryBtn} onClick={login}>
+              Entrar
+            </button>
+          )}
+
+          {token && (
+            <div style={{ marginTop: 12, fontSize: 12, color: COLORS.muted }}>
+              <b>Sesión iniciada.</b> Token guardado en el dispositivo.
+            </div>
+          )}
+        </div>
+
+        {me && (
+          <pre style={{ marginTop: 12, background: '#111', color: '#0f0', padding: 12, overflow: 'auto', borderRadius: 12 }}>
 {JSON.stringify(me, null, 2)}
-        </pre>
-      )}
+          </pre>
+        )}
 
-      {result && (
-        <pre style={{ marginTop: 12, background: '#111', color: '#0f0', padding: 12, overflow: 'auto' }}>
+        {result && (
+          <pre style={{ marginTop: 12, background: '#111', color: '#0f0', padding: 12, overflow: 'auto', borderRadius: 12 }}>
 {JSON.stringify(result, null, 2)}
-        </pre>
-      )}
+          </pre>
+        )}
+
+        <div style={{ marginTop: 14, fontSize: 12, color: COLORS.muted }}>
+          Colores: gris + naranja (demo)
+        </div>
+      </div>
     </div>
   )
 }
