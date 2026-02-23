@@ -121,7 +121,14 @@ export default function App() {
     background: COLORS.orange,
     border: `1px solid ${COLORS.orange}`,
     color: 'white',
-    fontWeight: 700
+    fontWeight: 800
+  }
+
+  const ghostBtn = {
+    ...baseBtn,
+    background: 'transparent',
+    border: `1px solid rgba(255,255,255,0.25)`,
+    color: 'white'
   }
 
   const inputStyle = {
@@ -154,114 +161,164 @@ export default function App() {
           }}
         >
           <img src="/logo.png" alt="Ferretería Battiston" style={{ height: 46, width: 'auto' }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ color: 'white', fontWeight: 800, letterSpacing: 0.3 }}>Ferretería Battiston</div>
-            <div style={{ color: '#D1D5DB', fontSize: 13 }}>Fidelización + Oficios</div>
+          <div style={{ flex: 1, minWidth: 160 }}>
+            <div style={{ color: 'white', fontWeight: 900, letterSpacing: 0.3, fontSize: 18 }}>Ferretería Battiston</div>
+            <div style={{ color: '#D1D5DB', fontSize: 13 }}>Puntos + Oficios a domicilio</div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <button style={baseBtn} onClick={() => setMode('register')} disabled={mode === 'register'}>
-              Registro
-            </button>
-            <button style={baseBtn} onClick={() => setMode('login')} disabled={mode === 'login'}>
-              Login
-            </button>
-            <button style={baseBtn} onClick={fetchMe} disabled={!token}>
-              /me
-            </button>
-            <button style={baseBtn} onClick={logout} disabled={!token}>
-              Salir
-            </button>
+            {!token ? (
+              <>
+                <button style={ghostBtn} onClick={() => setMode('register')} disabled={mode === 'register'}>
+                  Registro
+                </button>
+                <button style={ghostBtn} onClick={() => setMode('login')} disabled={mode === 'login'}>
+                  Login
+                </button>
+              </>
+            ) : (
+              <>
+                <button style={ghostBtn} onClick={fetchMe}>
+                  Mi cuenta
+                </button>
+                <button style={ghostBtn} onClick={logout}>
+                  Salir
+                </button>
+              </>
+            )}
           </div>
         </div>
 
         <div style={{ height: 14 }} />
 
-        <div
-          style={{
-            background: COLORS.card,
-            borderRadius: 16,
-            border: `1px solid ${COLORS.border}`,
-            padding: 16
-          }}
-        >
-          <div style={{ fontWeight: 800, marginBottom: 6, fontSize: 16 }}>
-            {mode === 'register' ? 'Crear cuenta' : 'Ingresar'}
-          </div>
-          <div style={{ color: COLORS.muted, fontSize: 13, marginBottom: 14 }}>
-            {mode === 'register'
-              ? 'Elegí roles, registrate y empezá a usar la app.'
-              : 'Ingresá con tu usuario y contraseña.'}
-          </div>
-
-          <label style={{ display: 'block', fontSize: 13, color: COLORS.muted }}>
-            Usuario
-            <input value={username} onChange={(e) => setUsername(e.target.value)} style={inputStyle} />
-          </label>
-
-          <div style={{ height: 10 }} />
-
-          <label style={{ display: 'block', fontSize: 13, color: COLORS.muted }}>
-            Clave
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} />
-          </label>
-
-          {mode === 'register' && (
-            <>
-              <div style={{ height: 14 }} />
-              <div style={{ fontSize: 13, marginBottom: 8, color: COLORS.muted }}>Roles (podés elegir varios)</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                {ROLES.map((r) => (
-                  <label
-                    key={r}
-                    style={{
-                      display: 'inline-flex',
-                      gap: 8,
-                      alignItems: 'center',
-                      padding: '8px 10px',
-                      borderRadius: 999,
-                      border: `1px solid ${COLORS.border}`
-                    }}
-                  >
-                    <input type="checkbox" checked={selectedRoles.includes(r)} onChange={() => toggleRole(r)} />
-                    {r}
-                  </label>
-                ))}
-              </div>
-            </>
-          )}
-
-          <div style={{ height: 16 }} />
-          {mode === 'register' ? (
-            <button style={primaryBtn} onClick={register}>
-              Registrar
-            </button>
-          ) : (
-            <button style={primaryBtn} onClick={login}>
-              Entrar
-            </button>
-          )}
-
-          {token && (
-            <div style={{ marginTop: 12, fontSize: 12, color: COLORS.muted }}>
-              <b>Sesión iniciada.</b> Token guardado en el dispositivo.
+        {!token ? (
+          <div
+            style={{
+              background: COLORS.card,
+              borderRadius: 16,
+              border: `1px solid ${COLORS.border}`,
+              padding: 16
+            }}
+          >
+            <div style={{ fontWeight: 900, marginBottom: 6, fontSize: 16 }}>
+              {mode === 'register' ? 'Crear cuenta' : 'Ingresar'}
             </div>
-          )}
-        </div>
+            <div style={{ color: COLORS.muted, fontSize: 13, marginBottom: 14 }}>
+              {mode === 'register'
+                ? 'Elegí roles, registrate y empezá a usar la app.'
+                : 'Ingresá con tu usuario y contraseña.'}
+            </div>
 
-        {me && (
-          <pre style={{ marginTop: 12, background: '#111', color: '#0f0', padding: 12, overflow: 'auto', borderRadius: 12 }}>
-{JSON.stringify(me, null, 2)}
-          </pre>
-        )}
+            <label style={{ display: 'block', fontSize: 13, color: COLORS.muted }}>
+              Usuario
+              <input value={username} onChange={(e) => setUsername(e.target.value)} style={inputStyle} />
+            </label>
 
-        {result && (
-          <pre style={{ marginTop: 12, background: '#111', color: '#0f0', padding: 12, overflow: 'auto', borderRadius: 12 }}>
+            <div style={{ height: 10 }} />
+
+            <label style={{ display: 'block', fontSize: 13, color: COLORS.muted }}>
+              Clave
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} />
+            </label>
+
+            {mode === 'register' && (
+              <>
+                <div style={{ height: 14 }} />
+                <div style={{ fontSize: 13, marginBottom: 8, color: COLORS.muted }}>Roles (podés elegir varios)</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                  {ROLES.map((r) => (
+                    <label
+                      key={r}
+                      style={{
+                        display: 'inline-flex',
+                        gap: 8,
+                        alignItems: 'center',
+                        padding: '8px 10px',
+                        borderRadius: 999,
+                        border: `1px solid ${COLORS.border}`
+                      }}
+                    >
+                      <input type="checkbox" checked={selectedRoles.includes(r)} onChange={() => toggleRole(r)} />
+                      {r}
+                    </label>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div style={{ height: 16 }} />
+            {mode === 'register' ? (
+              <button style={primaryBtn} onClick={register}>
+                Registrar
+              </button>
+            ) : (
+              <button style={primaryBtn} onClick={login}>
+                Entrar
+              </button>
+            )}
+
+            {result && (
+              <pre style={{ marginTop: 12, background: '#111', color: '#0f0', padding: 12, overflow: 'auto', borderRadius: 12 }}>
 {JSON.stringify(result, null, 2)}
-          </pre>
+              </pre>
+            )}
+          </div>
+        ) : (
+          <>
+            <div
+              style={{
+                background: COLORS.card,
+                borderRadius: 16,
+                border: `1px solid ${COLORS.border}`,
+                padding: 16
+              }}
+            >
+              <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 6 }}>Dashboard (demo)</div>
+              <div style={{ color: COLORS.muted, fontSize: 13, marginBottom: 14 }}>
+                Acá van a aparecer tus puntos, pedidos y trabajos.
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+                <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 12 }}>
+                  <div style={{ fontWeight: 800 }}>Puntos</div>
+                  <div style={{ color: COLORS.muted, fontSize: 13 }}>Saldo: (pendiente)</div>
+                </div>
+
+                <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 12 }}>
+                  <div style={{ fontWeight: 800 }}>Pedir oficio</div>
+                  <div style={{ color: COLORS.muted, fontSize: 13 }}>Albañil / Electricista / Plomero</div>
+                  <div style={{ height: 10 }} />
+                  <button style={primaryBtn} onClick={() => setResult({ info: 'Próximo: publicar job' })}>
+                    Crear solicitud
+                  </button>
+                </div>
+
+                <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 12 }}>
+                  <div style={{ fontWeight: 800 }}>Presupuesto</div>
+                  <div style={{ color: COLORS.muted, fontSize: 13 }}>Enviar lista por WhatsApp / cargar productos</div>
+                  <div style={{ height: 10 }} />
+                  <button style={baseBtn} onClick={() => setResult({ info: 'Próximo: flujo presupuesto' })}>
+                    Pedir presupuesto
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {me && (
+              <pre style={{ marginTop: 12, background: '#111', color: '#0f0', padding: 12, overflow: 'auto', borderRadius: 12 }}>
+{JSON.stringify(me, null, 2)}
+              </pre>
+            )}
+
+            {result && (
+              <pre style={{ marginTop: 12, background: '#111', color: '#0f0', padding: 12, overflow: 'auto', borderRadius: 12 }}>
+{JSON.stringify(result, null, 2)}
+              </pre>
+            )}
+          </>
         )}
 
         <div style={{ marginTop: 14, fontSize: 12, color: COLORS.muted }}>
-          Colores: gris + naranja (demo)
+          UI demo (gris + naranja)
         </div>
       </div>
     </div>
