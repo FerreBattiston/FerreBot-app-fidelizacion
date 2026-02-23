@@ -154,18 +154,20 @@ export default function App() {
           style={{
             background: COLORS.dark,
             borderRadius: 16,
-            padding: 16,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14
+            padding: 16
           }}
         >
-          <img src="/logo.png" alt="Ferretería Battiston" style={{ height: 46, width: 'auto' }} />
-          <div style={{ flex: 1, minWidth: 160 }}>
-            <div style={{ color: 'white', fontWeight: 900, letterSpacing: 0.3, fontSize: 18 }}>Ferretería Battiston</div>
-            <div style={{ color: '#D1D5DB', fontSize: 13 }}>Puntos + Oficios a domicilio</div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <img
+              src="/logo.png"
+              alt="Ferretería Battiston"
+              style={{ height: 76, width: 'auto', display: 'block' }}
+            />
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+
+          <div style={{ height: 12 }} />
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
             {!token ? (
               <>
                 <button style={ghostBtn} onClick={() => setMode('register')} disabled={mode === 'register'}>
@@ -186,6 +188,22 @@ export default function App() {
               </>
             )}
           </div>
+        </div>
+
+        <div style={{ height: 10 }} />
+
+        <div
+          style={{
+            background: COLORS.orange,
+            color: 'white',
+            borderRadius: 14,
+            padding: '10px 14px',
+            textAlign: 'center',
+            fontWeight: 900,
+            letterSpacing: 0.2
+          }}
+        >
+          Suma puntos / Oficios a domicilio
         </div>
 
         <div style={{ height: 14 }} />
@@ -223,25 +241,48 @@ export default function App() {
             {mode === 'register' && (
               <>
                 <div style={{ height: 14 }} />
-                <div style={{ fontSize: 13, marginBottom: 8, color: COLORS.muted }}>Roles (podés elegir varios)</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                  {ROLES.map((r) => (
-                    <label
-                      key={r}
-                      style={{
-                        display: 'inline-flex',
-                        gap: 8,
-                        alignItems: 'center',
-                        padding: '8px 10px',
-                        borderRadius: 999,
-                        border: `1px solid ${COLORS.border}`
-                      }}
-                    >
-                      <input type="checkbox" checked={selectedRoles.includes(r)} onChange={() => toggleRole(r)} />
-                      {r}
-                    </label>
-                  ))}
-                </div>
+
+                <details
+                  style={{
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 14,
+                    padding: 12,
+                    background: '#FAFAFA'
+                  }}
+                  open
+                >
+                  <summary style={{ cursor: 'pointer', fontWeight: 900, color: COLORS.text }}>
+                    Roles (tocá para desplegar)
+                  </summary>
+
+                  <div style={{ height: 10 }} />
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 10
+                    }}
+                  >
+                    {ROLES.map((r) => (
+                      <label
+                        key={r}
+                        style={{
+                          display: 'flex',
+                          gap: 8,
+                          alignItems: 'center',
+                          padding: '10px 10px',
+                          borderRadius: 12,
+                          border: `1px solid ${COLORS.border}`,
+                          background: COLORS.card
+                        }}
+                      >
+                        <input type="checkbox" checked={selectedRoles.includes(r)} onChange={() => toggleRole(r)} />
+                        <span style={{ fontWeight: 800 }}>{r}</span>
+                      </label>
+                    ))}
+                  </div>
+                </details>
               </>
             )}
 
