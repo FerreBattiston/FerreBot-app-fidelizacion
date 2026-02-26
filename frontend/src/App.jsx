@@ -358,8 +358,12 @@ export default function App() {
           </>
         )}
 
-        <div style={{ marginTop: 14, fontSize: 12, color: COLORS.muted }}>
-          UI demo (gris + naranja)
+        <div style={{ marginTop: 14, fontSize: 12, color: COLORS.muted, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <span>UI demo (gris + naranja)</span>
+          <span>·</span>
+          <a href="/privacidad.html" target="_blank" rel="noreferrer" style={{ color: COLORS.orange, fontWeight: 800 }}>
+            Política de privacidad
+          </a>
         </div>
       </div>
     </div>
