@@ -40,6 +40,9 @@ export default function App() {
   const [assignedJobs, setAssignedJobs] = useState([])
   const [busy, setBusy] = useState(false)
 
+  const [rateStars, setRateStars] = useState(5)
+  const [rateComment, setRateComment] = useState('')
+
   const COLORS = {
     bg: '#F3F4F6',
     card: '#FFFFFF',
@@ -200,6 +203,24 @@ export default function App() {
       const data = await res.json().catch(() => ({}))
       setResult({ status: res.status, data })
       await fetchAssignedJobs()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function rateJob(id) {
+    setBusy(true)
+    try {
+      const res = await fetch(`${API_URL}/api/v1/jobs/${id}/rate`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ stars: Number(rateStars), comment: rateComment })
+      })
+      const data = await res.json().catch(() => ({}))
+      setResult({ status: res.status, data })
+      setRateComment('')
+      setRateStars(5)
+      await fetchMyJobs()
     } finally {
       setBusy(false)
     }
@@ -553,6 +574,31 @@ export default function App() {
                           <div key={j.id} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 10, background: COLORS.card }}>
                             <div style={{ fontWeight: 900 }}>#{j.id} · {j.trade} · {j.zone}</div>
                             <div style={{ color: COLORS.muted, fontSize: 13 }}>Estado: {j.status}</div>
+
+                            {j.status === 'FINALIZADO' && (
+                              <div style={{ marginTop: 10, borderTop: `1px solid ${COLORS.border}`, paddingTop: 10 }}>
+                                <div style={{ fontWeight: 900, marginBottom: 6 }}>Calificar (1 a 5)</div>
+                                <div style={{ display: 'grid', gap: 10 }}>
+                                  <label style={{ display: 'block', fontSize: 13, color: COLORS.muted }}>
+                                    Estrellas
+                                    <select value={rateStars} onChange={(e) => setRateStars(e.target.value)} style={inputStyle}>
+                                      <option value={1}>1</option>
+                                      <option value={2}>2</option>
+                                      <option value={3}>3</option>
+                                      <option value={4}>4</option>
+                                      <option value={5}>5</option>
+                                    </select>
+                                  </label>
+                                  <label style={{ display: 'block', fontSize: 13, color: COLORS.muted }}>
+                                    Comentario (opcional)
+                                    <textarea value={rateComment} onChange={(e) => setRateComment(e.target.value)} style={{ ...inputStyle, minHeight: 70 }} />
+                                  </label>
+                                  <button style={primaryBtn} onClick={() => rateJob(j.id)} disabled={busy}>
+                                    {busy ? 'Enviando...' : 'Enviar calificación'}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
