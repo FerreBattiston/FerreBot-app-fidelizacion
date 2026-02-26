@@ -20,8 +20,10 @@ services:
     environment:
       PORT: 3001
       DATABASE_URL: postgres://ferrebot:ferrebot@db:5432/ferrebot
-      CORS_ORIGIN: http://localhost:5173
+      CORS_ORIGIN: https://app.ferreteriabattiston.com
       JWT_SECRET: change-me-in-prod
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -40,3 +42,4 @@ services:
 
 volumes:
   db_data:
+  uploads_data:

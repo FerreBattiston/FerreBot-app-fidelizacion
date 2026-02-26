@@ -4,6 +4,9 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
@@ -41,6 +44,31 @@ function authMiddleware(req, res, next) {
     return res.status(401).json({ error: 'Invalid token' });
   }
 }
+
+// uploads
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+fs.mkdirSync(uploadsDir, { recursive: true });
+app.use('/uploads', express.static(uploadsDir));
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, uploadsDir);
+    },
+    filename: function (req, file, cb) {
+      const ext = path.extname(file.originalname || '').slice(0, 10);
+      const safeExt = ext && ext.startsWith('.') ? ext : '';
+      cb(null, `job_${Date.now()}_${Math.random().toString(16).slice(2)}${safeExt}`);
+    }
+  }),
+  limits: { fileSize: 8 * 1024 * 1024 }, // 8MB
+  fileFilter: function (req, file, cb) {
+    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image uploads are allowed'));
+    }
+    cb(null, true);
+  }
+});
 
 app.get('/api/v1/health', (req, res) => {
   res.json({ ok: true });
@@ -162,24 +190,30 @@ app.post('/api/v1/professionals/profile', authMiddleware, async (req, res) => {
   }
 });
 
-// Create job (client)
-app.post('/api/v1/jobs', authMiddleware, async (req, res) => {
+// Create job (client) - supports optional photo upload (multipart/form-data)
+app.post('/api/v1/jobs', authMiddleware, upload.single('photo'), async (req, res) => {
   if (!requireRole(req, res, ['cliente'])) return;
 
-  const { trade, zone, description } = req.body || {};
+  // Works for both JSON and multipart
+  const trade = (req.body && req.body.trade) || null;
+  const zone = (req.body && req.body.zone) || null;
+  const description = (req.body && req.body.description) || null;
+
   if (!trade || !zone || !description) return res.status(400).json({ error: 'trade, zone, description are required' });
   if (!ALLOWED_ROLES.has(trade) || trade === 'cliente' || trade === 'admin') {
     return res.status(400).json({ error: 'trade must be albañil/electricista/plomero' });
   }
 
+  const photoUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
-      `INSERT INTO jobs(created_by, trade, zone, description)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, status`,
-      [req.user.sub, trade, zone, description]
+      `INSERT INTO jobs(created_by, trade, zone, description, photo_url)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, status, photo_url`,
+      [req.user.sub, trade, zone, description, photoUrl]
     );
     const job = rows[0];
     await client.query(
@@ -188,7 +222,7 @@ app.post('/api/v1/jobs', authMiddleware, async (req, res) => {
       [job.id, job.status, req.user.sub, 'creado']
     );
     await client.query('COMMIT');
-    res.status(201).json({ id: job.id });
+    res.status(201).json({ id: job.id, photo_url: job.photo_url });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
@@ -218,7 +252,7 @@ app.get('/api/v1/jobs', authMiddleware, async (req, res) => {
   // assigned=1 => jobs assigned to me
   if (assigned === '1' || assigned === 'true') add('assigned_to = ?', req.user.sub);
 
-  const sql = `SELECT id, trade, zone, description, status, created_at, created_by, assigned_to, assigned_at, finished_at
+  const sql = `SELECT id, trade, zone, description, photo_url, status, created_at, created_by, assigned_to, assigned_at, finished_at
               FROM jobs
               ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
               ORDER BY id DESC

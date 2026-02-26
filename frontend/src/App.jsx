@@ -34,6 +34,7 @@ export default function App() {
   const [jobZone, setJobZone] = useState('')
   const [jobWhen, setJobWhen] = useState('')
   const [jobDescription, setJobDescription] = useState('')
+  const [jobPhoto, setJobPhoto] = useState(null)
   const [jobs, setJobs] = useState([])
   const [myJobs, setMyJobs] = useState([])
   const [assignedJobs, setAssignedJobs] = useState([])
@@ -134,14 +135,33 @@ export default function App() {
   async function createJob() {
     setBusy(true)
     try {
-      const payload = { trade: jobTrade, zone: jobZone, description: `${jobDescription}${jobWhen ? `\nCuando: ${jobWhen}` : ''}` }
-      const res = await fetch(`${API_URL}/api/v1/jobs`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload)
-      })
+      const description = `${jobDescription}${jobWhen ? `\nCuando: ${jobWhen}` : ''}`
+
+      // If photo provided, send multipart/form-data
+      let res
+      if (jobPhoto) {
+        const fd = new FormData()
+        fd.append('trade', jobTrade)
+        fd.append('zone', jobZone)
+        fd.append('description', description)
+        fd.append('photo', jobPhoto)
+        res = await fetch(`${API_URL}/api/v1/jobs`, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: fd
+        })
+      } else {
+        const payload = { trade: jobTrade, zone: jobZone, description }
+        res = await fetch(`${API_URL}/api/v1/jobs`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload)
+        })
+      }
+
       const data = await res.json().catch(() => ({}))
       setResult({ status: res.status, data })
+      setJobPhoto(null)
       await fetchMyJobs()
     } finally {
       setBusy(false)
@@ -456,6 +476,16 @@ export default function App() {
                         <textarea value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} style={{ ...inputStyle, minHeight: 90 }} placeholder="Contanos qué necesitás" />
                       </label>
 
+                      <label style={{ display: 'block', fontSize: 13, color: COLORS.muted }}>
+                        Foto (opcional)
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setJobPhoto(e.target.files?.[0] || null)}
+                          style={{ ...inputStyle, padding: '8px 10px' }}
+                        />
+                      </label>
+
                       <button style={primaryBtn} onClick={createJob} disabled={busy}>
                         {busy ? 'Enviando...' : 'Crear solicitud'}
                       </button>
@@ -476,6 +506,15 @@ export default function App() {
                         {jobs.map((j) => (
                           <div key={j.id} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 10, background: COLORS.card }}>
                             <div style={{ fontWeight: 900 }}>#{j.id} · {j.trade} · {j.zone}</div>
+                            {j.photo_url && (
+                              <div style={{ marginTop: 8 }}>
+                                <img
+                                  src={j.photo_url}
+                                  alt="foto trabajo"
+                                  style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 12, border: `1px solid ${COLORS.border}` }}
+                                />
+                              </div>
+                            )}
                             <div style={{ color: COLORS.muted, fontSize: 13, whiteSpace: 'pre-wrap' }}>{j.description}</div>
                             <div style={{ height: 8 }} />
                             <button style={primaryBtn} onClick={() => takeJob(j.id)} disabled={busy}>
@@ -522,6 +561,15 @@ export default function App() {
                         {assignedJobs.map((j) => (
                           <div key={j.id} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 10, background: COLORS.card }}>
                             <div style={{ fontWeight: 900 }}>#{j.id} · {j.trade} · {j.zone}</div>
+                            {j.photo_url && (
+                              <div style={{ marginTop: 8 }}>
+                                <img
+                                  src={j.photo_url}
+                                  alt="foto trabajo"
+                                  style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 12, border: `1px solid ${COLORS.border}` }}
+                                />
+                              </div>
+                            )}
                             <div style={{ color: COLORS.muted, fontSize: 13, whiteSpace: 'pre-wrap' }}>{j.description}</div>
                             <div style={{ height: 8 }} />
                             <button style={primaryBtn} onClick={() => finishJob(j.id)} disabled={busy || j.status !== 'ASIGNADO'}>
