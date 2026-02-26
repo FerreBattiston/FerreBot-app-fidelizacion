@@ -29,6 +29,16 @@ export default function App() {
   const [me, setMe] = useState(null)
   const [result, setResult] = useState(null)
 
+  // Jobs UI state
+  const [jobTrade, setJobTrade] = useState('electricista')
+  const [jobZone, setJobZone] = useState('')
+  const [jobWhen, setJobWhen] = useState('')
+  const [jobDescription, setJobDescription] = useState('')
+  const [jobs, setJobs] = useState([])
+  const [myJobs, setMyJobs] = useState([])
+  const [assignedJobs, setAssignedJobs] = useState([])
+  const [busy, setBusy] = useState(false)
+
   const COLORS = {
     bg: '#F3F4F6',
     card: '#FFFFFF',
@@ -85,6 +95,84 @@ export default function App() {
     setMe({ status: res.status, data })
   }
 
+  async function fetchJobs() {
+    if (!token) return
+    setBusy(true)
+    try {
+      const res = await fetch(`${API_URL}/api/v1/jobs?status=PUBLICADO`, { headers })
+      const data = await res.json().catch(() => ({}))
+      setJobs(data.items || [])
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function fetchMyJobs() {
+    if (!token) return
+    setBusy(true)
+    try {
+      const res = await fetch(`${API_URL}/api/v1/jobs?mine=1`, { headers })
+      const data = await res.json().catch(() => ({}))
+      setMyJobs(data.items || [])
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function fetchAssignedJobs() {
+    if (!token) return
+    setBusy(true)
+    try {
+      const res = await fetch(`${API_URL}/api/v1/jobs?assigned=1`, { headers })
+      const data = await res.json().catch(() => ({}))
+      setAssignedJobs(data.items || [])
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function createJob() {
+    setBusy(true)
+    try {
+      const payload = { trade: jobTrade, zone: jobZone, description: `${jobDescription}${jobWhen ? `\nCuando: ${jobWhen}` : ''}` }
+      const res = await fetch(`${API_URL}/api/v1/jobs`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      })
+      const data = await res.json().catch(() => ({}))
+      setResult({ status: res.status, data })
+      await fetchMyJobs()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function takeJob(id) {
+    setBusy(true)
+    try {
+      const res = await fetch(`${API_URL}/api/v1/jobs/${id}/take`, { method: 'POST', headers })
+      const data = await res.json().catch(() => ({}))
+      setResult({ status: res.status, data })
+      await fetchJobs()
+      await fetchAssignedJobs()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function finishJob(id) {
+    setBusy(true)
+    try {
+      const res = await fetch(`${API_URL}/api/v1/jobs/${id}/finish`, { method: 'POST', headers })
+      const data = await res.json().catch(() => ({}))
+      setResult({ status: res.status, data })
+      await fetchAssignedJobs()
+    } finally {
+      setBusy(false)
+    }
+  }
+
   function logout() {
     setToken('')
     setStoredToken('')
@@ -94,6 +182,15 @@ export default function App() {
 
   useEffect(() => {
     fetchMe()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
+
+  useEffect(() => {
+    if (!token) return
+    // prefetch some lists
+    fetchJobs()
+    fetchMyJobs()
+    fetchAssignedJobs()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
@@ -313,9 +410,9 @@ export default function App() {
                 padding: 16
               }}
             >
-              <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 6 }}>Dashboard (demo)</div>
+              <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 6 }}>Dashboard</div>
               <div style={{ color: COLORS.muted, fontSize: 13, marginBottom: 14 }}>
-                Acá van a aparecer tus puntos, pedidos y trabajos.
+                Bienvenido. Elegí una acción.
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
@@ -325,19 +422,123 @@ export default function App() {
                 </div>
 
                 <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 12 }}>
-                  <div style={{ fontWeight: 800 }}>Pedir oficio</div>
-                  <div style={{ color: COLORS.muted, fontSize: 13 }}>Albañil / Electricista / Plomero</div>
+                  <div style={{ fontWeight: 900, marginBottom: 6 }}>Oficios a domicilio</div>
+                  <div style={{ color: COLORS.muted, fontSize: 13, marginBottom: 10 }}>
+                    Clientes crean una solicitud. Profesionales toman trabajos.
+                  </div>
+
+                  <details style={{ border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 10, background: '#FAFAFA' }}>
+                    <summary style={{ cursor: 'pointer', fontWeight: 900 }}>Crear solicitud (cliente)</summary>
+                    <div style={{ height: 10 }} />
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+                      <label style={{ display: 'block', fontSize: 13, color: COLORS.muted }}>
+                        Rubro
+                        <select value={jobTrade} onChange={(e) => setJobTrade(e.target.value)} style={inputStyle}>
+                          <option value="albañil">albañil</option>
+                          <option value="electricista">electricista</option>
+                          <option value="plomero">plomero</option>
+                        </select>
+                      </label>
+
+                      <label style={{ display: 'block', fontSize: 13, color: COLORS.muted }}>
+                        Zona / Barrio
+                        <input value={jobZone} onChange={(e) => setJobZone(e.target.value)} style={inputStyle} placeholder="Ej: Centro" />
+                      </label>
+
+                      <label style={{ display: 'block', fontSize: 13, color: COLORS.muted }}>
+                        ¿Para cuándo?
+                        <input value={jobWhen} onChange={(e) => setJobWhen(e.target.value)} style={inputStyle} placeholder="Ej: mañana por la tarde" />
+                      </label>
+
+                      <label style={{ display: 'block', fontSize: 13, color: COLORS.muted }}>
+                        Descripción
+                        <textarea value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} style={{ ...inputStyle, minHeight: 90 }} placeholder="Contanos qué necesitás" />
+                      </label>
+
+                      <button style={primaryBtn} onClick={createJob} disabled={busy}>
+                        {busy ? 'Enviando...' : 'Crear solicitud'}
+                      </button>
+                    </div>
+                  </details>
+
                   <div style={{ height: 10 }} />
-                  <button style={primaryBtn} onClick={() => setResult({ info: 'Próximo: publicar job' })}>
-                    Crear solicitud
-                  </button>
+
+                  <details style={{ border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 10, background: '#FAFAFA' }}>
+                    <summary style={{ cursor: 'pointer', fontWeight: 900 }}>Trabajos disponibles (profesional)</summary>
+                    <div style={{ height: 10 }} />
+                    <button style={baseBtn} onClick={fetchJobs} disabled={busy}>Actualizar</button>
+                    <div style={{ height: 10 }} />
+                    {(jobs || []).length === 0 ? (
+                      <div style={{ color: COLORS.muted, fontSize: 13 }}>No hay trabajos publicados.</div>
+                    ) : (
+                      <div style={{ display: 'grid', gap: 10 }}>
+                        {jobs.map((j) => (
+                          <div key={j.id} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 10, background: COLORS.card }}>
+                            <div style={{ fontWeight: 900 }}>#{j.id} · {j.trade} · {j.zone}</div>
+                            <div style={{ color: COLORS.muted, fontSize: 13, whiteSpace: 'pre-wrap' }}>{j.description}</div>
+                            <div style={{ height: 8 }} />
+                            <button style={primaryBtn} onClick={() => takeJob(j.id)} disabled={busy}>
+                              Tomar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </details>
+
+                  <div style={{ height: 10 }} />
+
+                  <details style={{ border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 10, background: '#FAFAFA' }}>
+                    <summary style={{ cursor: 'pointer', fontWeight: 900 }}>Mis solicitudes (cliente)</summary>
+                    <div style={{ height: 10 }} />
+                    <button style={baseBtn} onClick={fetchMyJobs} disabled={busy}>Actualizar</button>
+                    <div style={{ height: 10 }} />
+                    {(myJobs || []).length === 0 ? (
+                      <div style={{ color: COLORS.muted, fontSize: 13 }}>Todavía no creaste solicitudes.</div>
+                    ) : (
+                      <div style={{ display: 'grid', gap: 10 }}>
+                        {myJobs.map((j) => (
+                          <div key={j.id} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 10, background: COLORS.card }}>
+                            <div style={{ fontWeight: 900 }}>#{j.id} · {j.trade} · {j.zone}</div>
+                            <div style={{ color: COLORS.muted, fontSize: 13 }}>Estado: {j.status}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </details>
+
+                  <div style={{ height: 10 }} />
+
+                  <details style={{ border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 10, background: '#FAFAFA' }}>
+                    <summary style={{ cursor: 'pointer', fontWeight: 900 }}>Trabajos asignados a mí (profesional)</summary>
+                    <div style={{ height: 10 }} />
+                    <button style={baseBtn} onClick={fetchAssignedJobs} disabled={busy}>Actualizar</button>
+                    <div style={{ height: 10 }} />
+                    {(assignedJobs || []).length === 0 ? (
+                      <div style={{ color: COLORS.muted, fontSize: 13 }}>No tenés trabajos asignados.</div>
+                    ) : (
+                      <div style={{ display: 'grid', gap: 10 }}>
+                        {assignedJobs.map((j) => (
+                          <div key={j.id} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 10, background: COLORS.card }}>
+                            <div style={{ fontWeight: 900 }}>#{j.id} · {j.trade} · {j.zone}</div>
+                            <div style={{ color: COLORS.muted, fontSize: 13, whiteSpace: 'pre-wrap' }}>{j.description}</div>
+                            <div style={{ height: 8 }} />
+                            <button style={primaryBtn} onClick={() => finishJob(j.id)} disabled={busy || j.status !== 'ASIGNADO'}>
+                              Finalizar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </details>
                 </div>
 
                 <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 12 }}>
                   <div style={{ fontWeight: 800 }}>Presupuesto</div>
                   <div style={{ color: COLORS.muted, fontSize: 13 }}>Enviar lista por WhatsApp / cargar productos</div>
                   <div style={{ height: 10 }} />
-                  <button style={baseBtn} onClick={() => setResult({ info: 'Próximo: flujo presupuesto' })}>
+                  <button style={baseBtn} onClick={() => setResult({ info: 'Pendiente: flujo presupuesto' })}>
                     Pedir presupuesto
                   </button>
                 </div>

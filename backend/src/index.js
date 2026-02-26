@@ -198,10 +198,9 @@ app.post('/api/v1/jobs', authMiddleware, async (req, res) => {
   }
 });
 
-// List jobs (professionals) - simple filter
+// List jobs (clients/professionals) - simple filter
 app.get('/api/v1/jobs', authMiddleware, async (req, res) => {
-  // allow both client/professional to see list for now
-  const { status, trade, zone } = req.query;
+  const { status, trade, zone, mine, assigned } = req.query;
 
   const where = [];
   const params = [];
@@ -213,7 +212,13 @@ app.get('/api/v1/jobs', authMiddleware, async (req, res) => {
   if (trade) add('trade = ?', trade);
   if (zone) add('zone = ?', zone);
 
-  const sql = `SELECT id, trade, zone, description, status, created_at, assigned_to
+  // mine=1 => jobs created by me
+  if (mine === '1' || mine === 'true') add('created_by = ?', req.user.sub);
+
+  // assigned=1 => jobs assigned to me
+  if (assigned === '1' || assigned === 'true') add('assigned_to = ?', req.user.sub);
+
+  const sql = `SELECT id, trade, zone, description, status, created_at, created_by, assigned_to, assigned_at, finished_at
               FROM jobs
               ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
               ORDER BY id DESC
