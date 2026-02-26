@@ -181,10 +181,22 @@ export default function App() {
     }
   }
 
-  async function finishJob(id) {
+  async function finishJob(id, photoFile) {
     setBusy(true)
     try {
-      const res = await fetch(`${API_URL}/api/v1/jobs/${id}/finish`, { method: 'POST', headers })
+      let res
+      if (photoFile) {
+        const fd = new FormData()
+        fd.append('photo', photoFile)
+        res = await fetch(`${API_URL}/api/v1/jobs/${id}/finish`, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: fd
+        })
+      } else {
+        res = await fetch(`${API_URL}/api/v1/jobs/${id}/finish`, { method: 'POST', headers })
+      }
+
       const data = await res.json().catch(() => ({}))
       setResult({ status: res.status, data })
       await fetchAssignedJobs()
@@ -570,10 +582,35 @@ export default function App() {
                                 />
                               </div>
                             )}
+                            {j.finished_photo_url && (
+                              <div style={{ marginTop: 8 }}>
+                                <div style={{ fontSize: 12, color: COLORS.muted, fontWeight: 800, marginBottom: 4 }}>
+                                  Foto terminado
+                                </div>
+                                <img
+                                  src={j.finished_photo_url}
+                                  alt="foto terminado"
+                                  style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 12, border: `1px solid ${COLORS.border}` }}
+                                />
+                              </div>
+                            )}
                             <div style={{ color: COLORS.muted, fontSize: 13, whiteSpace: 'pre-wrap' }}>{j.description}</div>
                             <div style={{ height: 8 }} />
-                            <button style={primaryBtn} onClick={() => finishJob(j.id)} disabled={busy || j.status !== 'ASIGNADO'}>
-                              Finalizar
+
+                            <label style={{ display: 'block', fontSize: 13, color: COLORS.muted }}>
+                              Foto terminado (opcional)
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => finishJob(j.id, e.target.files?.[0] || null)}
+                                style={{ ...inputStyle, padding: '8px 10px', marginTop: 6 }}
+                                disabled={busy || j.status !== 'ASIGNADO'}
+                              />
+                            </label>
+
+                            <div style={{ height: 8 }} />
+                            <button style={primaryBtn} onClick={() => finishJob(j.id, null)} disabled={busy || j.status !== 'ASIGNADO'}>
+                              Finalizar (sin foto)
                             </button>
                           </div>
                         ))}

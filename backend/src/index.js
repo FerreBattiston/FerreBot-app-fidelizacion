@@ -252,7 +252,7 @@ app.get('/api/v1/jobs', authMiddleware, async (req, res) => {
   // assigned=1 => jobs assigned to me
   if (assigned === '1' || assigned === 'true') add('assigned_to = ?', req.user.sub);
 
-  const sql = `SELECT id, trade, zone, description, photo_url, status, created_at, created_by, assigned_to, assigned_at, finished_at
+  const sql = `SELECT id, trade, zone, description, photo_url, finished_photo_url, status, created_at, created_by, assigned_to, assigned_at, finished_at
               FROM jobs
               ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
               ORDER BY id DESC
@@ -317,10 +317,12 @@ app.post('/api/v1/jobs/:id/take', authMiddleware, async (req, res) => {
   }
 });
 
-// Finish job (assigned professional)
-app.post('/api/v1/jobs/:id/finish', authMiddleware, async (req, res) => {
+// Finish job (assigned professional) - supports optional finished photo
+app.post('/api/v1/jobs/:id/finish', authMiddleware, upload.single('photo'), async (req, res) => {
   const jobId = Number(req.params.id);
   if (!jobId) return res.status(400).json({ error: 'invalid id' });
+
+  const finishedPhotoUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
   const client = await pool.connect();
   try {
@@ -340,7 +342,10 @@ app.post('/api/v1/jobs/:id/finish', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'only assigned professional can finish' });
     }
 
-    await client.query(`UPDATE jobs SET status='FINALIZADO', finished_at=now() WHERE id=$1`, [jobId]);
+    await client.query(
+      `UPDATE jobs SET status='FINALIZADO', finished_at=now(), finished_photo_url=COALESCE($2, finished_photo_url) WHERE id=$1`,
+      [jobId, finishedPhotoUrl]
+    );
     await client.query(
       `INSERT INTO job_status_history(job_id, status, changed_by, note)
        VALUES ($1, $2, $3, $4)`,
@@ -348,7 +353,7 @@ app.post('/api/v1/jobs/:id/finish', authMiddleware, async (req, res) => {
     );
 
     await client.query('COMMIT');
-    res.json({ ok: true });
+    res.json({ ok: true, finished_photo_url: finishedPhotoUrl });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
