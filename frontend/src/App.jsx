@@ -40,6 +40,8 @@ export default function App() {
   const [assignedJobs, setAssignedJobs] = useState([])
   const [busy, setBusy] = useState(false)
 
+  const [profRatings, setProfRatings] = useState({}) // { [userId]: {avg,count} }
+
   const [rateStars, setRateStars] = useState(5)
   const [rateComment, setRateComment] = useState('')
 
@@ -97,6 +99,19 @@ export default function App() {
     const res = await fetch(`${API_URL}/api/v1/me`, { headers })
     const data = await res.json().catch(() => ({}))
     setMe({ status: res.status, data })
+  }
+
+  async function fetchRating(userId) {
+    if (!token || !userId) return
+    try {
+      const res = await fetch(`${API_URL}/api/v1/professionals/${userId}/rating`, { headers })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setProfRatings((prev) => ({ ...prev, [userId]: { avg: data.avg, count: data.count } }))
+      }
+    } catch {
+      // ignore
+    }
   }
 
   async function fetchJobs() {
@@ -221,6 +236,8 @@ export default function App() {
       setRateComment('')
       setRateStars(5)
       await fetchMyJobs()
+      // refresh any visible ratings
+      await fetchAssignedJobs()
     } finally {
       setBusy(false)
     }
@@ -545,9 +562,17 @@ export default function App() {
                                   src={j.photo_url}
                                   alt="foto trabajo"
                                   style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 12, border: `1px solid ${COLORS.border}` }}
+                                  onLoad={() => j.assigned_to && fetchRating(j.assigned_to)}
                                 />
                               </div>
                             )}
+
+                            {j.assigned_to && profRatings[j.assigned_to] && (
+                              <div style={{ marginTop: 8, fontSize: 13, color: COLORS.muted }}>
+                                Profesional: ⭐ {Number(profRatings[j.assigned_to].avg || 0).toFixed(1)} ({profRatings[j.assigned_to].count})
+                              </div>
+                            )}
+
                             <div style={{ color: COLORS.muted, fontSize: 13, whiteSpace: 'pre-wrap' }}>{j.description}</div>
                             <div style={{ height: 8 }} />
                             <button style={primaryBtn} onClick={() => takeJob(j.id)} disabled={busy}>
@@ -574,6 +599,20 @@ export default function App() {
                           <div key={j.id} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 10, background: COLORS.card }}>
                             <div style={{ fontWeight: 900 }}>#{j.id} · {j.trade} · {j.zone}</div>
                             <div style={{ color: COLORS.muted, fontSize: 13 }}>Estado: {j.status}</div>
+
+                            {j.assigned_to && !profRatings[j.assigned_to] && (
+                              <div style={{ marginTop: 8 }}>
+                                <button style={baseBtn} onClick={() => fetchRating(j.assigned_to)} disabled={busy}>
+                                  Ver reputación del profesional
+                                </button>
+                              </div>
+                            )}
+
+                            {j.assigned_to && profRatings[j.assigned_to] && (
+                              <div style={{ marginTop: 8, fontSize: 13, color: COLORS.muted }}>
+                                Profesional: ⭐ {Number(profRatings[j.assigned_to].avg || 0).toFixed(1)} ({profRatings[j.assigned_to].count})
+                              </div>
+                            )}
 
                             {j.status === 'FINALIZADO' && (
                               <div style={{ marginTop: 10, borderTop: `1px solid ${COLORS.border}`, paddingTop: 10 }}>

@@ -413,5 +413,27 @@ app.post('/api/v1/jobs/:id/rate', authMiddleware, async (req, res) => {
   }
 });
 
+// Professional rating summary
+app.get('/api/v1/professionals/:id/rating', authMiddleware, async (req, res) => {
+  const profId = Number(req.params.id);
+  if (!profId) return res.status(400).json({ error: 'invalid id' });
+
+  const client = await pool.connect();
+  try {
+    const r = await client.query(
+      `SELECT COUNT(*)::int AS count, COALESCE(AVG(stars),0)::float AS avg
+       FROM job_ratings
+       WHERE to_user = $1`,
+      [profId]
+    );
+    res.json({ professional_id: profId, count: r.rows[0].count, avg: r.rows[0].avg });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error reading rating' });
+  } finally {
+    client.release();
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Backend listening on port ${PORT}`));
