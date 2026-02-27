@@ -105,6 +105,45 @@ export default function App() {
   }
 
   async function fetchRating(userId) {
+
+  const [rewards, setRewards] = useState([])
+  const [pointsBalance, setPointsBalance] = useState(0)
+
+  async function fetchRewards() {
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/v1/rewards`, { headers })
+      const data = await res.json().catch(() => ({}))
+      setRewards(data.items || [])
+    } catch {}
+  }
+
+  async function fetchPoints() {
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/v1/points/balance`, { headers })
+      const data = await res.json().catch(() => ({}))
+      setPointsBalance(data.balance || 0)
+      const hist = await fetch(`${API_URL}/api/v1/points/history`, { headers }).then(r=>r.json().catch(()=>({})))
+      setNotifications((prev)=>prev) // noop to keep linter
+    } catch {}
+  }
+
+  async function redeemReward(id) {
+    setBusy(true)
+    try {
+      const res = await fetch(`${API_URL}/api/v1/points/redeem`, { method: 'POST', headers, body: JSON.stringify({ reward_id: id }) })
+      const data = await res.json().catch(()=>({}))
+      if (res.ok) {
+        setToast({ text: 'Canje solicitado. Revisá Mis puntos para el saldo.' })
+        await fetchPoints();
+        await fetchRewards();
+      } else {
+        setToast({ text: data.error || 'Error en canje' })
+      }
+    } finally { setBusy(false) }
+  }
+
     if (!token || !userId) return
     try {
       const res = await fetch(`${API_URL}/api/v1/professionals/${userId}/rating`, { headers })
@@ -386,6 +425,8 @@ export default function App() {
                 <button style={ghostBtn} onClick={fetchMe}>
                   Mi cuenta
                 </button>
+                <button style={ghostBtn} onClick={() => { fetchRewards(); setMode('store') }} >Tienda</button>
+                <button style={ghostBtn} onClick={() => { fetchPoints(); setMode('points') }} >Mis puntos</button>
                 <button style={ghostBtn} onClick={logout}>
                   Salir
                 </button>
@@ -769,6 +810,31 @@ export default function App() {
               <pre style={{ marginTop: 12, background: '#111', color: '#0f0', padding: 12, overflow: 'auto', borderRadius: 12 }}>
 {JSON.stringify(me, null, 2)}
               </pre>
+            )}
+
+            {mode==='store' && (
+              <div style={{ background: COLORS.card, borderRadius: 12, padding: 12, marginTop: 12 }}>
+                <div style={{ fontWeight: 900 }}>Tienda - Premios</div>
+                <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
+                  {rewards.map(r=> (
+                    <div key={r.id} style={{ border: `1px solid ${COLORS.border}`, padding: 10, borderRadius: 8 }}>
+                      <div style={{ fontWeight: 800 }}>{r.title} — {r.points_cost} pts</div>
+                      <div style={{ color: COLORS.muted }}>{r.description}</div>
+                      <div style={{ height: 8 }} />
+                      <button style={primaryBtn} onClick={()=>redeemReward(r.id)} disabled={busy}>Canjear</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {mode==='points' && (
+              <div style={{ background: COLORS.card, borderRadius: 12, padding: 12, marginTop: 12 }}>
+                <div style={{ fontWeight: 900 }}>Mis puntos</div>
+                <div style={{ fontSize: 24, fontWeight: 900, marginTop: 8 }}>{pointsBalance} pts</div>
+                <div style={{ height: 10 }} />
+                <button style={baseBtn} onClick={fetchPoints}>Actualizar</button>
+              </div>
             )}
 
             {result && (
