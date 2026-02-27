@@ -306,6 +306,26 @@ app.post('/api/v1/jobs/:id/take', authMiddleware, async (req, res) => {
        VALUES ($1, $2, $3, $4)`,
       [jobId, 'ASIGNADO', req.user.sub, 'tomado por profesional']
     );
+    // notify the job creator that their job was taken
+    await client.query(
+      `INSERT INTO notifications(user_id, type, payload)
+       VALUES (
+         (SELECT created_by FROM jobs WHERE id=$1),
+         'job_taken',
+         jsonb_build_object('job_id', $1, 'by', $2)
+       )`,
+      [jobId, req.user.sub]
+    );
+    // notify the job creator that their job was taken
+    await client.query(
+      `INSERT INTO notifications(user_id, type, payload)
+       VALUES (
+         (SELECT created_by FROM jobs WHERE id=$1),
+         'job_taken',
+         jsonb_build_object('job_id', $1, 'by', $2)
+       )`,
+      [jobId, req.user.sub]
+    );
     await client.query('COMMIT');
     res.json({ ok: true });
   } catch (err) {
