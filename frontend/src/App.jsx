@@ -42,6 +42,9 @@ export default function App() {
 
   const [profRatings, setProfRatings] = useState({}) // { [userId]: {avg,count} }
 
+  const [notifications, setNotifications] = useState([])
+  const [toast, setToast] = useState(null)
+
   const [rateStars, setRateStars] = useState(5)
   const [rateComment, setRateComment] = useState('')
 
@@ -149,6 +152,36 @@ export default function App() {
       setBusy(false)
     }
   }
+
+
+  async function fetchNotifications() {
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/v1/notifications`, { headers })
+      const data = await res.json().catch(() => ({}))
+      const items = data.items || []
+      // if there are new notifications, show toast for job_taken
+      const unseen = items.filter(n => !notifications.find(x => x.id===n.id))
+      if (unseen.length) {
+        for (const n of unseen) {
+          if (n.type === 'job_taken') {
+            const jobId = n.payload && n.payload.job_id
+            setToast({ text: `Tu solicitud #${jobId} fue tomada por un profesional.` , ts: Date.now() })
+          }
+        }
+      }
+      setNotifications(items)
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  useEffect(() => {
+    if (!token) return
+    fetchNotifications()
+    const iv = setInterval(fetchNotifications, 15000)
+    return () => clearInterval(iv)
+  }, [token])
 
   async function createJob() {
     setBusy(true)
@@ -316,7 +349,11 @@ export default function App() {
         padding: 16
       }}
     >
-      <div style={{ maxWidth: 720, margin: '0 auto' }}>
+      <div style={{ maxWidth: 720, margin: '0 auto' }}>.
+          {toast && (
+            <div style={{ position: 'fixed', right: 16, top: 16, background: COLORS.orange, color: 'white', padding: 12, borderRadius: 8, zIndex: 999 }}>{toast.text}</div>
+          )}
+
         <div
           style={{
             background: COLORS.dark,
@@ -597,6 +634,7 @@ export default function App() {
                       <div style={{ display: 'grid', gap: 10 }}>
                         {myJobs.map((j) => (
                           <div key={j.id} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 10, background: COLORS.card }}>
+                          <div key={j.id} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 10, background: COLORS.card }}>
                             <div style={{ fontWeight: 900 }}>#{j.id} · {j.trade} · {j.zone}</div>
                             <div style={{ color: COLORS.muted, fontSize: 13 }}>Estado: {j.status}</div>
 
@@ -611,6 +649,18 @@ export default function App() {
                             {j.assigned_to && profRatings[j.assigned_to] && (
                               <div style={{ marginTop: 8, fontSize: 13, color: COLORS.muted }}>
                                 Profesional: ⭐ {Number(profRatings[j.assigned_to].avg || 0).toFixed(1)} ({profRatings[j.assigned_to].count})
+                              </div>
+                            )}
+
+                            {j.status === 'FINALIZADO' && (
+                              <div style={{ marginTop: 10, borderTop: `1px solid ${COLORS.border}`, paddingTop: 10 }}>
+
+                            {j.finished_photo_url && (
+                              <div style={{ marginTop: 8 }}>
+                                <div style={{ fontSize: 12, color: COLORS.muted, fontWeight: 800, marginBottom: 4 }}>
+                                  Foto terminado
+                                </div>
+                                <img src={j.finished_photo_url} alt="foto terminado" style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 12, border: `1px solid ${COLORS.border}` }} />
                               </div>
                             )}
 
