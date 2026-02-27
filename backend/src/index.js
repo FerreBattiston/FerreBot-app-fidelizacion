@@ -457,3 +457,20 @@ app.get('/api/v1/professionals/:id/rating', authMiddleware, async (req, res) => 
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Backend listening on port ${PORT}`));
+
+// Notifications (simple polling endpoint)
+app.get('/api/v1/notifications', authMiddleware, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const r = await client.query(
+      `SELECT id, type, payload, read, created_at FROM notifications WHERE user_id=$1 ORDER BY id DESC LIMIT 50`,
+      [req.user.sub]
+    );
+    res.json({ items: r.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error reading notifications' });
+  } finally {
+    client.release();
+  }
+});
