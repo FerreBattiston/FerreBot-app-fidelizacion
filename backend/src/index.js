@@ -474,3 +474,99 @@ app.get('/api/v1/notifications', authMiddleware, async (req, res) => {
     client.release();
   }
 });
+
+
+// Points helper
+async function awardPoints({ client, userId, change, reason, ref_type = null, ref_id = null, created_by = null, meta = null }) {
+  const c = client || (await pool.connect());
+  let own = !!client;
+  try {
+    if (!own) await c.query('BEGIN');
+    await c.query(
+      `INSERT INTO points_ledger(user_id, change, reason, ref_type, ref_id, created_by, meta)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [userId, change, reason, ref_type, ref_id, created_by, meta]
+    );
+    if (!own) await c.query('COMMIT');
+  } catch (e) {
+    if (!own) await c.query('ROLLBACK');
+    throw e;
+  } finally {
+    if (!own) c.release();
+  }
+}
+
+// Points balance
+app.get('/api/v1/points/balance', authMiddleware, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const r = await client.query('SELECT COALESCE(SUM(change),0)::int AS balance FROM points_ledger WHERE user_id=$1', [req.user.sub]);
+    res.json({ balance: r.rows[0].balance });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error reading balance' });
+  } finally {
+    client.release();
+  }
+});
+
+// Points history
+app.get('/api/v1/points/history', authMiddleware, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const r = await client.query('SELECT id, change, reason, ref_type, ref_id, meta, created_at FROM points_ledger WHERE user_id=$1 ORDER BY id DESC LIMIT 100', [req.user.sub]);
+    res.json({ items: r.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error reading history' });
+  } finally {
+    client.release();
+  }
+});
+
+// Rewards list
+app.get('/api/v1/rewards', authMiddleware, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const r = await client.query('SELECT id, code, title, description, points_cost, stock, active FROM rewards WHERE active = true ORDER BY id');
+    res.json({ items: r.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error reading rewards' });
+  } finally {
+    client.release();
+  }
+});
+
+// Redeem reward (client)
+app.post('/api/v1/points/redeem', authMiddleware, async (req, res) => {
+  if (!requireRole(req, res, ['cliente'])) return;
+  const { reward_id } = req.body || {};
+  if (!reward_id) return res.status(400).json({ error: 'reward_id required' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const r = await client.query('SELECT id, points_cost, stock FROM rewards WHERE id=$1 FOR UPDATE', [reward_id]);
+    if (!r.rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'reward not found' }); }
+    const reward = r.rows[0];
+    // compute balance
+    const bal = await client.query('SELECT COALESCE(SUM(change),0)::int AS balance FROM points_ledger WHERE user_id=$1 FOR UPDATE', [req.user.sub]);
+    const balance = bal.rows[0].balance;
+    if (balance < reward.points_cost) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'insufficient points' }); }
+    if (reward.stock !== null && reward.stock !== undefined && reward.stock <= 0) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'out of stock' }); }
+
+    // create redemption and ledger
+    await client.query('INSERT INTO redemptions(user_id, reward_id, points) VALUES ($1,$2,$3)', [req.user.sub, reward.id, reward.points_cost]);
+    await awardPoints({ client, userId: req.user.sub, change: -reward.points_cost, reason: 'redeem', ref_type: 'reward', ref_id: reward.id, created_by: req.user.sub });
+    await client.query('UPDATE rewards SET stock = stock - 1 WHERE id=$1', [reward.id]);
+    await client.query('COMMIT');
+    res.json({ ok: true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'Error redeeming reward' });
+  } finally {
+    client.release();
+  }
+});
