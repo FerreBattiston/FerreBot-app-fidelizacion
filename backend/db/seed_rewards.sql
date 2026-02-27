@@ -1,7 +1,7 @@
 -- Seed 10 example rewards
 INSERT INTO rewards (code, title, description, points_cost, stock)
 VALUES
-('DESCUENTO100','Descuento $100','Cupón de descuento $100 en tienda',100,10),
+('DESCUENTO100','Descuento 00','Cupón de descuento 00 en tienda',100,10),
 ('LLAVE-ENGR','Llave combinada','Llave combinada profesional',200,5),
 ('KIT-CINTA','Kit cinta aislante','Pack 5 rollos cinta aislante',150,8),
 ('DESTORNILLADOR-PH','Destornillador PH','Destornillador PH profesional',120,10),
