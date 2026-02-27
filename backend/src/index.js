@@ -99,6 +99,29 @@ app.post('/api/v1/auth/register', async (req, res) => {
       await client.query('INSERT INTO user_roles(user_id, role) VALUES($1, $2)', [userId, role]);
     }
 
+    // award registration bonus +50 points
+    try {
+      await awardPoints({ userId, change: 50, reason: 'registro', created_by: null });
+    } catch(e) {
+      console.error('awardPoints failed on register:', e);
+    }
+
+    // if referrer_username provided, credit referer and referred
+    const ref = req.body && req.body.referrer_username;
+    if (ref) {
+      try {
+        const ruser = await client.query('SELECT id FROM users WHERE username=$1', [ref]);
+        if (ruser.rows.length) {
+          const refId = ruser.rows[0].id;
+          await awardPoints({ userId: refId, change: 100, reason: 'referir', ref_type: 'user', ref_id: userId });
+          // extra bonus to referred
+          await awardPoints({ userId, change: 50, reason: 'referido', ref_type: 'user', ref_id: refId });
+        }
+      } catch(e) {
+        console.error('referral award failed:', e);
+      }
+    }
+
     await client.query('COMMIT');
     const token = signToken({ sub: userId, username, roles: rolesArr });
     res.status(201).json({ id: userId, token });
