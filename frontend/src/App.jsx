@@ -36,6 +36,7 @@ export default function App() {
   const [jobDescription, setJobDescription] = useState('')
   const [jobPhoto, setJobPhoto] = useState(null)
   const [jobs, setJobs] = useState([])
+  const [referrer, setReferrer] = useState('')
   const [myJobs, setMyJobs] = useState([])
   const [assignedJobs, setAssignedJobs] = useState([])
   const [busy, setBusy] = useState(false)
@@ -69,12 +70,18 @@ export default function App() {
     const res = await fetch(`${API_URL}/api/v1/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, roles: selectedRoles })
+      body: JSON.stringify({ username, password, roles: selectedRoles, referrer_username: referrer || undefined })
     })
     const data = await res.json().catch(() => ({}))
     if (data?.token) {
       setToken(data.token)
       setStoredToken(data.token)
+      // after register, fetch points and show points view
+      setTimeout(async ()=>{
+        await fetchPoints()
+        setMode('points')
+        setToast({ text: 'Bienvenido! Mirá tus puntos en Mis puntos.' })
+      },300)
     }
     setResult({ status: res.status, data })
   }
@@ -90,6 +97,12 @@ export default function App() {
     if (data?.token) {
       setToken(data.token)
       setStoredToken(data.token)
+      // after register, fetch points and show points view
+      setTimeout(async ()=>{
+        await fetchPoints()
+        setMode('points')
+        setToast({ text: 'Bienvenido! Mirá tus puntos en Mis puntos.' })
+      },300)
     }
     setResult({ status: res.status, data })
   }
